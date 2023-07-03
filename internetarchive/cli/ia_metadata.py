@@ -143,13 +143,13 @@ def remove_metadata(item: item.Item, metadata: Mapping, args: Mapping) -> Respon
                 continue
 
         for x in src_md:
-            if isinstance(metadata[key], list):
-                if x not in metadata[key]:
-                    md[key].append(x)  # type: ignore
-            else:
-                if x != metadata[key]:
-                    md[key].append(x)  # type: ignore
-
+            if (
+                isinstance(metadata[key], list)
+                and x not in metadata[key]
+                or not isinstance(metadata[key], list)
+                and x != metadata[key]
+            ):
+                md[key].append(x)  # type: ignore
         if len(md[key]) == len(src_md):
             del md[key]
 
@@ -216,7 +216,6 @@ def main(argv: dict, session: session.ArchiveSession) -> None:
                 else:
                     sys.exit(1)
 
-        # Modify metadata.
         elif (args['--modify'] or args['--append'] or args['--append-list']
               or args['--remove'] or args['--insert']):
             if args['--modify']:
@@ -244,29 +243,21 @@ def main(argv: dict, session: session.ArchiveSession) -> None:
                 responses.append(remove_metadata(item, metadata, args))
             else:
                 responses.append(modify_metadata(item, metadata, args))
-            if (i + 1) == len(args['<identifier>']):
-                if all(r.status_code == 200 for r in responses):  # type: ignore
+            if (i + 1) == len(args['<identifier>']):  # type: ignore
+                if all(r.status_code == 200 for r in responses):
                     sys.exit(0)
                 else:
                     for r in responses:
                         assert isinstance(r, Response)
-                        if r.status_code == 200:
-                            continue
-                        # We still want to exit 0 if the non-200 is a
-                        # "no changes to xml" error.
-                        elif 'no changes' in r.text:
-                            continue
-                        else:
+                        if r.status_code != 200 and 'no changes' not in r.text:
                             sys.exit(1)
 
-        # Get metadata.
         elif args['--formats']:
             for f in item.get_files():
                 formats.add(f.format)
             if (i + 1) == len(args['<identifier>']):
                 print('\n'.join(formats))
 
-        # Dump JSON to stdout.
         else:
             metadata_str = json.dumps(item.item_metadata)
             print(metadata_str)
@@ -292,11 +283,7 @@ def main(argv: dict, session: session.ArchiveSession) -> None:
             else:
                 for r in responses:
                     assert isinstance(r, Response)
-                    if r.status_code == 200:
-                        continue
-                    # We still want to exit 0 if the non-200 is a
-                    # "no changes to xml" error.
-                    elif 'no changes' in r.text:
+                    if r.status_code == 200 or 'no changes' in r.text:
                         continue
                     else:
                         sys.exit(1)

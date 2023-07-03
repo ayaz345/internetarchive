@@ -57,7 +57,7 @@ def main(argv: list[str], session: ArchiveSession) -> None:
             elif not user:
                 print('error: "logged-in-user" cookie not found in config file, '
                       'try reconfiguring.', file=sys.stderr)
-            elif not sig:
+            else:
                 print('error: "logged-in-sig" cookie not found in config file, '
                       'try reconfiguring.', file=sys.stderr)
             sys.exit(1)

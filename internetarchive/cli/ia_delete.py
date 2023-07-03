@@ -80,7 +80,7 @@ def main(argv, session: ArchiveSession) -> None:
         print(f'{exc}\n{printable_usage(__doc__)}', file=sys.stderr)
         sys.exit(1)
 
-    verbose = True if not args['--quiet'] else False
+    verbose = not args['--quiet']
     item = session.get_item(args['<identifier>'])
     if not item.exists:
         print('{0}: skipping, item does\'t exist.', file=sys.stderr)

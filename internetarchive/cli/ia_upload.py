@@ -103,7 +103,7 @@ def _upload_files(item, files, upload_kwargs, prev_identifier=None, archive_sess
     except HTTPError as exc:
         responses += [exc.response]
     except InvalidIdentifierException as exc:
-        print(str(exc), file=sys.stderr)
+        print(exc, file=sys.stderr)
         sys.exit(1)
     finally:
         # Debug mode.
@@ -125,33 +125,67 @@ def main(argv, session):  # noqa: C901
     ERRORS = False
 
     # Validate args.
-    s = Schema({
-        str: Use(bool),
-        '<identifier>': Or(None, And(str, validate_s3_identifier,
-            error=('<identifier> should be between 3 and 80 characters in length, and '
-                   'can only contain alphanumeric characters, periods ".", '
-                   'underscores "_", or dashes "-". However, <identifier> cannot begin '
-                   'with periods, underscores, or dashes.'))),
-        '<file>': And(
-            And(lambda f: all(os.path.exists(x) for x in f if x != '-'),
-                error='<file> should be a readable file or directory.'),
-            And(lambda f: False if f == ['-'] and not args['--remote-name'] else True,
-                error='--remote-name must be provided when uploading from stdin.')),
-        '--remote-name': Or(None, str),
-        '--spreadsheet': Or(None, os.path.isfile,
-                            error='--spreadsheet should be a readable file.'),
-        '--file-metadata': Or(None, os.path.isfile,
-                              error='--file-metadata should be a readable file.'),
-        '--metadata': Or(None, And(Use(get_args_dict), dict),
-                         error='--metadata must be formatted as --metadata="key:value"'),
-        '--header': Or(None, And(Use(get_args_dict), dict),
-                       error='--header must be formatted as --header="key:value"'),
-        '--retries': Use(lambda x: int(x[0]) if x else 0),
-        '--sleep': Use(lambda lst: int(lst[0]), error='--sleep value must be an integer.'),
-        '--size-hint': Or(Use(lambda lst: str(lst[0]) if lst else None), int, None,
-                          error='--size-hint value must be an integer.'),
-        '--status-check': bool,
-    })
+    s = Schema(
+        {
+            str: Use(bool),
+            '<identifier>': Or(
+                None,
+                And(
+                    str,
+                    validate_s3_identifier,
+                    error=(
+                        '<identifier> should be between 3 and 80 characters in length, and '
+                        'can only contain alphanumeric characters, periods ".", '
+                        'underscores "_", or dashes "-". However, <identifier> cannot begin '
+                        'with periods, underscores, or dashes.'
+                    ),
+                ),
+            ),
+            '<file>': And(
+                And(
+                    lambda f: all(os.path.exists(x) for x in f if x != '-'),
+                    error='<file> should be a readable file or directory.',
+                ),
+                And(
+                    lambda f: bool(f != ['-'] or args['--remote-name']),
+                    error='--remote-name must be provided when uploading from stdin.',
+                ),
+            ),
+            '--remote-name': Or(None, str),
+            '--spreadsheet': Or(
+                None,
+                os.path.isfile,
+                error='--spreadsheet should be a readable file.',
+            ),
+            '--file-metadata': Or(
+                None,
+                os.path.isfile,
+                error='--file-metadata should be a readable file.',
+            ),
+            '--metadata': Or(
+                None,
+                And(Use(get_args_dict), dict),
+                error='--metadata must be formatted as --metadata="key:value"',
+            ),
+            '--header': Or(
+                None,
+                And(Use(get_args_dict), dict),
+                error='--header must be formatted as --header="key:value"',
+            ),
+            '--retries': Use(lambda x: int(x[0]) if x else 0),
+            '--sleep': Use(
+                lambda lst: int(lst[0]),
+                error='--sleep value must be an integer.',
+            ),
+            '--size-hint': Or(
+                Use(lambda lst: str(lst[0]) if lst else None),
+                int,
+                None,
+                error='--size-hint value must be an integer.',
+            ),
+            '--status-check': bool,
+        }
+    )
     try:
         args = s.validate(args)
     except SchemaError as exc:
@@ -191,9 +225,9 @@ def main(argv, session):  # noqa: C901
     if not args['--header'].get('x-archive-keep-old-version') and not args['--no-backup']:
         args['--header']['x-archive-keep-old-version'] = '1'
 
-    queue_derive = True if args['--no-derive'] is False else False
-    verbose = True if args['--quiet'] is False else False
-    set_scanner = False if args['--no-scanner'] is True else True
+    queue_derive = args['--no-derive'] is False
+    verbose = args['--quiet'] is False
+    set_scanner = args['--no-scanner'] is not True
 
     if args['--file-metadata']:
         try:

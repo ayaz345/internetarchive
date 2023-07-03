@@ -47,7 +47,7 @@ def main(argv, session: ArchiveSession) -> None:
 
     files = item.files
     if args.get('--all'):
-        columns = list(set(chain.from_iterable(k for k in files)))
+        columns = list(set(chain.from_iterable(iter(files))))
     else:
         columns = args['--columns'].split(',')
 

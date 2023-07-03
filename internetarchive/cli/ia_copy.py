@@ -124,7 +124,7 @@ def main(
         args['--header']['x-archive-keep-old-version'] = '1'
 
     url = f'{session.protocol}//s3.us.archive.org/{quote(dest_path)}'
-    queue_derive = True if args['--no-derive'] is False else False
+    queue_derive = args['--no-derive'] is False
     req = ia.iarequest.S3Request(url=url,
                                  method='PUT',
                                  metadata=args['--metadata'],

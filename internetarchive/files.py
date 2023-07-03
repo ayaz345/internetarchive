@@ -210,10 +210,8 @@ class File(BaseFile):
 
         if destdir:
             if return_responses is not True:
-                try:
+                with suppress(FileExistsError):
                     os.mkdir(destdir)
-                except FileExistsError:
-                    pass
             if os.path.isfile(destdir):
                 raise OSError(f'{destdir} is not a directory!')
             file_path = os.path.join(destdir, file_path)
@@ -238,7 +236,7 @@ class File(BaseFile):
             elif not fileobj:
                 st = os.stat(file_path.encode('utf-8'))
                 if (st.st_mtime == self.mtime) and (st.st_size == self.size) \
-                        or self.name.endswith('_files.xml') and st.st_size != 0:
+                            or self.name.endswith('_files.xml') and st.st_size != 0:
                     msg = f'skipping {file_path}, file already exists based on length and date.'
                     log.info(msg)
                     if verbose:
@@ -287,10 +285,8 @@ class File(BaseFile):
         except (RetryError, HTTPError, ConnectTimeout, OSError, ReadTimeout) as exc:
             msg = f'error downloading file {file_path}, exception raised: {exc}'
             log.error(msg)
-            try:
+            with suppress(OSError):
                 os.remove(file_path)
-            except OSError:
-                pass
             if verbose:
                 print(f' {msg}', file=sys.stderr)
             if ignore_errors:
@@ -337,7 +333,6 @@ class File(BaseFile):
         access_key = self.item.session.access_key if not access_key else access_key
         secret_key = self.item.session.secret_key if not secret_key else secret_key
         debug = debug or False
-        verbose = verbose or False
         max_retries = retries or 2
         headers = headers or {}
 
@@ -357,32 +352,32 @@ class File(BaseFile):
         )
         if debug:
             return request
-        else:
-            if verbose:
-                msg = f' deleting: {self.name}'
-                if cascade_delete:
-                    msg += ' and all derivative files.'
-                print(msg, file=sys.stderr)
-            prepared_request = self.item.session.prepare_request(request)
+        verbose = verbose or False
+        if verbose:
+            msg = f' deleting: {self.name}'
+            if cascade_delete:
+                msg += ' and all derivative files.'
+            print(msg, file=sys.stderr)
+        prepared_request = self.item.session.prepare_request(request)
 
-            try:
-                resp = self.item.session.send(prepared_request)
-                resp.raise_for_status()
-            except (RetryError, HTTPError, ConnectTimeout,
-                    OSError, ReadTimeout) as exc:
-                error_msg = f'Error deleting {url}, {exc}'
-                log.error(error_msg)
-                raise
-            else:
-                return resp
-            finally:
-                # The retry adapter is mounted to the session object.
-                # Make sure to remove it after delete, so it isn't
-                # mounted if and when the session object is used for an
-                # upload. This is important because we use custom retry
-                # handling for IA-S3 uploads.
-                url_prefix = f'{self.item.session.protocol}//s3.us.archive.org'
-                del self.item.session.adapters[url_prefix]
+        try:
+            resp = self.item.session.send(prepared_request)
+            resp.raise_for_status()
+        except (RetryError, HTTPError, ConnectTimeout,
+                OSError, ReadTimeout) as exc:
+            error_msg = f'Error deleting {url}, {exc}'
+            log.error(error_msg)
+            raise
+        else:
+            return resp
+        finally:
+            # The retry adapter is mounted to the session object.
+            # Make sure to remove it after delete, so it isn't
+            # mounted if and when the session object is used for an
+            # upload. This is important because we use custom retry
+            # handling for IA-S3 uploads.
+            url_prefix = f'{self.item.session.protocol}//s3.us.archive.org'
+            del self.item.session.adapters[url_prefix]
 
 
 class OnTheFlyFile(File):

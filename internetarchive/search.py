@@ -62,11 +62,8 @@ class Search:
         params = params or {}
 
         self.session = archive_session
-        self.dsl_fts = False if not dsl_fts else True
-        if self.dsl_fts or full_text_search:
-            self.fts = True
-        else:
-            self.fts = False
+        self.dsl_fts = bool(dsl_fts)
+        self.fts = bool(self.dsl_fts or full_text_search)
         self.query = query
         if self.fts and not self.dsl_fts:
             self.query = f'!L {self.query}'
@@ -85,20 +82,19 @@ class Search:
 
         # Initialize params.
         default_params = {'q': self.query}
-        if 'page' not in params:
-            if 'rows' in params:
-                params['page'] = 1
-            else:
-                default_params['count'] = 10000
-        else:
+        if 'page' in params:
             default_params['output'] = 'json'
+        elif 'rows' in params:
+            params['page'] = 1
+        else:
+            default_params['count'] = 10000
         # In the beta endpoint 'scope' was called 'index'.
         # Let's support both for a while.
         if 'index' in params:
             params['scope'] = params['index']
             del params['index']
         self.params = default_params.copy()
-        self.params.update(params)
+        self.params |= params
 
         # Set timeout.
         if 'timeout' not in self.request_kwargs:
@@ -130,8 +126,8 @@ class Search:
                              auth=self.auth,
                              **self.request_kwargs)
         j = r.json()
-        num_found = int(j['response']['numFound'])
         if not self._num_found:
+            num_found = int(j['response']['numFound'])
             self._num_found = num_found
         if j.get('error'):
             yield j

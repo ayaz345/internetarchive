@@ -93,8 +93,6 @@ class ArchiveSession(requests.sessions.Session):
         """
         super().__init__()
         http_adapter_kwargs = http_adapter_kwargs or {}
-        debug = bool(debug)
-
         self.config = get_config(config, config_file)
         self.config_file = config_file
         for ck, cv in self.config.get('cookies', {}).items():
@@ -131,6 +129,8 @@ class ArchiveSession(requests.sessions.Session):
         if logging_config.get('level'):
             self.set_file_logger(logging_config.get('level', 'NOTSET'),
                                  logging_config.get('file', 'internetarchive.log'))
+            debug = debug
+
             if debug or (logger.level <= 10):
                 self.set_file_logger(logging_config.get('level', 'NOTSET'),
                                      logging_config.get('file', 'internetarchive.log'),
@@ -540,8 +540,8 @@ class ArchiveSession(requests.sessions.Session):
                     raise e
             if self.protocol == 'http:':
                 return r
-            insecure_warnings = ['SNIMissingWarning', 'InsecurePlatformWarning']
             if w:
+                insecure_warnings = ['SNIMissingWarning', 'InsecurePlatformWarning']
                 for warning in w:
                     if any(x in str(warning) for x in insecure_warnings):
                         insecure = True

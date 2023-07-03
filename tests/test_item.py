@@ -139,7 +139,7 @@ def test_get_files_with_multiple_filters(nasa_item):
 
 
 def test_get_files_no_matches(nasa_item):
-    assert list(nasa_item.get_files(formats='none')) == []
+    assert not list(nasa_item.get_files(formats='none'))
 
 
 def test_download(tmpdir, nasa_item):
@@ -346,7 +346,6 @@ def test_upload_validate_identifier(session):
                         access_key='a',
                         secret_key='b',
                         validate_identifier=True)
-        assert True
 
 
 def test_upload_secure_session():
