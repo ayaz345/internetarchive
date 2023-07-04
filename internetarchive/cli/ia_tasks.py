@@ -108,7 +108,7 @@ def main(argv, session: ArchiveSession) -> None:
     params = get_args_dict(args['--parameter'], query_string=True)
     if args['<identifier>']:
         _params = {'identifier': args['<identifier>'], 'catalog': 1, 'history': 1}
-        _params.update(params)
+        _params |= params
         params = _params
     elif args['--get-task-log']:
         log = session.get_task_log(args['--get-task-log'], params)
@@ -131,12 +131,12 @@ def main(argv, session: ArchiveSession) -> None:
     if not (args['<identifier>']
             or params.get('task_id')):
         _params = {'catalog': 1, 'history': 0}
-        _params.update(params)
+        _params |= params
         params = _params
 
-    if not any(x in params for x in queryable_params):
+    if all(x not in params for x in queryable_params):
         _params = {'submitter': session.user_email, 'catalog': 1, 'history': 0, 'summary': 0}
-        _params.update(params)
+        _params |= params
         params = _params
 
     if args['--tab-output']:

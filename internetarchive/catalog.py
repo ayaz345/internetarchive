@@ -110,10 +110,7 @@ class Catalog:
         params.update({'summary': 1, 'history': 0, 'catalog': 0})
         r = self.make_tasks_request(params)
         j = r.json()
-        if j.get('success') is True:
-            return j['value']['summary']
-        else:
-            return j
+        return j['value']['summary'] if j.get('success') is True else j
 
     def make_tasks_request(self, params: Mapping | None) -> Response:
         """Make a GET request to the
@@ -213,8 +210,7 @@ class Catalog:
             task = CatalogTask(j, self)
             tasks.append(task)
 
-        all_tasks = sorted(tasks, key=sort_by_date, reverse=True)
-        return all_tasks
+        return sorted(tasks, key=sort_by_date, reverse=True)
 
     def submit_task(self, identifier: str, cmd: str,
                     comment: str | None = None,
@@ -252,12 +248,13 @@ class Catalog:
                 data['args'] = {'comment': comment}
         if priority:
             data['priority'] = priority
-        r = self.session.post(self.url,
-                              json=data,
-                              auth=self.auth,
-                              headers=headers,
-                              **self.request_kwargs)
-        return r
+        return self.session.post(
+            self.url,
+            json=data,
+            auth=self.auth,
+            headers=headers,
+            **self.request_kwargs
+        )
 
 
 class CatalogTask:

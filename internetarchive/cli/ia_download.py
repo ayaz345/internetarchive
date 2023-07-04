@@ -171,25 +171,15 @@ def main(argv, session: ArchiveSession) -> None:
             identifier = identifier.strip()
         except AttributeError:
             identifier = identifier.get('identifier')
-        if total_ids > 1:
-            item_index = f'{i + 1}/{total_ids}'
-        else:
-            item_index = None
-
+        item_index = f'{i + 1}/{total_ids}' if total_ids > 1 else None
         try:
             item = session.get_item(identifier)
         except Exception as exc:
             print(f'{identifier}: failed to retrieve item metadata - errors', file=sys.stderr)
             raise
-            if 'You are attempting to make an HTTPS' in str(exc):
-                print(f'\n{exc}', file=sys.stderr)
-                sys.exit(1)
-            else:
-                continue
-
         # Otherwise, download the entire item.
-        ignore_history_dir = True if not args['--download-history'] else False
-        _errors = item.download(
+        ignore_history_dir = not args['--download-history']
+        if _errors := item.download(
             files=files,
             formats=args['--format'],
             glob_pattern=args['--glob'],
@@ -211,8 +201,7 @@ def main(argv, session: ArchiveSession) -> None:
             exclude_source=args['--exclude-source'],
             stdout=args['--stdout'],
             timeout=args['--timeout'],
-        )
-        if _errors:
+        ):
             errors.append(_errors)
     if errors:
         # TODO: add option for a summary/report.

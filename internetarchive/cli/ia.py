@@ -104,8 +104,9 @@ def load_ia_module(cmd: str):
     except (ImportError, DistributionNotFound):
         print(f"error: '{cmd}' is not an ia command! See 'ia help'",
               file=sys.stderr)
-        matches = '\t'.join(difflib.get_close_matches(cmd, cmd_aliases.values()))
-        if matches:
+        if matches := '\t'.join(
+            difflib.get_close_matches(cmd, cmd_aliases.values())
+        ):
             print(f'\nDid you mean one of these?\n\t{matches}', file=sys.stderr)
         sys.exit(127)
 
@@ -134,12 +135,12 @@ def main() -> None:
         cmd = cmd_aliases[cmd]
 
     if (cmd == 'help') or (not cmd):
-        if not args['<args>']:
-            sys.exit(print(__doc__.strip(), file=sys.stderr))
-        else:
+        if args['<args>']:
             ia_module = load_ia_module(args['<args>'][0])
             sys.exit(print(ia_module.__doc__.strip(), file=sys.stderr))
 
+        else:
+            sys.exit(print(__doc__.strip(), file=sys.stderr))
     if cmd != 'configure' and args['--config-file']:
         if not os.path.isfile(args['--config-file']):
             print(f'--config-file should be a readable file.\n{printable_usage(__doc__)}',
@@ -170,13 +171,11 @@ def main() -> None:
     try:
         sys.exit(ia_module.main(argv, session))
     except OSError as e:
-        # Handle Broken Pipe errors.
-        if e.errno == errno.EPIPE:
-            sys.stderr.close()
-            sys.stdout.close()
-            sys.exit(0)
-        else:
+        if e.errno != errno.EPIPE:
             raise
+        sys.stderr.close()
+        sys.stdout.close()
+        sys.exit(0)
 
 
 if __name__ == '__main__':

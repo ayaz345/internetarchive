@@ -127,11 +127,7 @@ class S3PreparedRequest(requests.models.PreparedRequest):
 
         headers['x-archive-auto-make-bucket'] = '1'
         if 'x-archive-queue-derive' not in headers:
-            if queue_derive is False:
-                headers['x-archive-queue-derive'] = '0'
-            else:
-                headers['x-archive-queue-derive'] = '1'
-
+            headers['x-archive-queue-derive'] = '0' if queue_derive is False else '1'
         def _prepare_metadata_headers(prepared_metadata, meta_type='meta'):
             for meta_key, meta_value in prepared_metadata.items():
                 # Encode arrays into JSON strings because Archive.org does not
@@ -248,7 +244,7 @@ class MetadataPreparedRequest(requests.models.PreparedRequest):
                 or all(isinstance(k, dict) for k in metadata.values())):
             changes = []
 
-            if any(not k for k in metadata):
+            if not all(metadata):
                 raise ValueError('Invalid metadata provided, '
                                  'check your input and try again')
 
@@ -280,8 +276,6 @@ class MetadataPreparedRequest(requests.models.PreparedRequest):
                 '-changes': json.dumps(changes),
                 'priority': priority,
             }
-            logger.debug(f'submitting metadata request: {self.data}')
-        # Write to single target
         else:
             if not target or 'metadata' in target:
                 target = 'metadata'
@@ -302,7 +296,7 @@ class MetadataPreparedRequest(requests.models.PreparedRequest):
                 '-target': target,
                 'priority': priority,
             }
-            logger.debug(f'submitting metadata request: {self.data}')
+        logger.debug(f'submitting metadata request: {self.data}')
         super().prepare_body(self.data, None)
 
 
@@ -319,14 +313,13 @@ def prepare_patch(metadata, source_metadata, append, append_list=None, insert=No
         destination_metadata.update(prepared_metadata)
     elif isinstance(metadata, list) and not destination_metadata:
         destination_metadata = metadata
-    else:
-        if isinstance(prepared_metadata, list):
-            if append_list:
-                destination_metadata += prepared_metadata
-            else:
-                destination_metadata = prepared_metadata
+    elif isinstance(prepared_metadata, list):
+        if append_list:
+            destination_metadata += prepared_metadata
         else:
-            destination_metadata.append(prepared_metadata)
+            destination_metadata = prepared_metadata
+    else:
+        destination_metadata.append(prepared_metadata)
     # Delete metadata items where value is REMOVE_TAG.
     destination_metadata = delete_items_from_dict(destination_metadata, 'REMOVE_TAG')
     patch = make_patch(source_metadata, destination_metadata).patch
@@ -362,8 +355,7 @@ def prepare_files_patch(metadata, source_metadata, append, target, append_list,
         if f.get('name') == filename:
             source_metadata = f
             break
-    patch = prepare_patch(metadata, source_metadata, append, append_list, insert)
-    return patch
+    return prepare_patch(metadata, source_metadata, append, append_list, insert)
 
 
 def prepare_metadata(metadata, source_metadata=None, append=False, append_list=False,

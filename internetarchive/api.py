@@ -359,7 +359,7 @@ def download(
     :returns: A list Requests if debug else a list of Responses.
     """
     item = get_item(identifier, **get_item_kwargs)
-    r = item.download(
+    return item.download(
         files=files,
         formats=formats,
         glob_pattern=glob_pattern,
@@ -377,7 +377,6 @@ def download(
         no_change_timestamp=no_change_timestamp,
         timeout=timeout,
     )
-    return r
 
 
 def delete(
@@ -551,8 +550,7 @@ def configure(  # nosec: hardcoded_password_default
         password or getpass("Password: "),
         host,
     )
-    config_file_path = config_module.write_config_file(auth_config, config_file)
-    return config_file_path
+    return config_module.write_config_file(auth_config, config_file)
 
 
 def get_username(access_key: str, secret_key: str) -> str:

@@ -141,7 +141,7 @@ def test_get_files_with_get_item_kwargs(tmpdir):
 
 def test_get_files_non_existing(nasa_mocker):
     files = get_files('nasa', files='none')
-    assert list(files) == []
+    assert not list(files)
 
 
 def test_get_files_multiple(nasa_mocker):
@@ -261,7 +261,6 @@ def test_upload_validate_identifier():
               access_key='test_access',
               secret_key='test_secret',
               validate_identifier=True)
-        assert True
 
 
 def test_download(tmpdir):

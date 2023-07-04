@@ -216,7 +216,7 @@ class Item(BaseItem):
 
         def _make_tab_URL(self, tab: str) -> None:
             """Make URLs for the separate tabs of Collections details page."""
-            self._make_URL(tab, self.details + f'&tab={tab}')  # type: ignore
+            self._make_URL(tab, f'{self.details}&tab={tab}')
 
         DEFAULT_URL_FORMAT = ('{0.session.protocol}//{0.session.host}'
                               '/{path}/{0.identifier}')
@@ -538,7 +538,7 @@ class Item(BaseItem):
         files = files or []
         formats = formats or []
         exclude_pattern = exclude_pattern or ''
-        on_the_fly = bool(on_the_fly)
+        on_the_fly = on_the_fly
 
         if not isinstance(files, (list, tuple, set)):
             files = [files]
@@ -557,7 +557,7 @@ class Item(BaseItem):
             for format, file_name in otf_files:
                 item_files.append({'name': file_name, 'format': format, 'otf': True})
 
-        if not any(k for k in [files, formats, glob_pattern]):
+        if not any([files, formats, glob_pattern]):
             for f in item_files:
                 yield self.get_file(str(f.get('name')), file_metadata=f)
 

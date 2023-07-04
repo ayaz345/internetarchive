@@ -55,7 +55,7 @@ def get_auth_config(email: str, password: str, host: str = 'archive.org') -> dic
         else:
             msg = f'Authentication failed: {msg}'
         raise AuthenticationError(msg)
-    auth_config = {
+    return {
         's3': {
             'access': j['values']['s3']['access'],
             'secret': j['values']['s3']['secret'],
@@ -66,9 +66,8 @@ def get_auth_config(email: str, password: str, host: str = 'archive.org') -> dic
         },
         'general': {
             'screenname': j['values']['screenname'],
-        }
+        },
     }
-    return auth_config
 
 
 def write_config_file(auth_config: Mapping, config_file=None):
@@ -122,9 +121,13 @@ def parse_config_file(config_file=None):
             # system, where $HOME must always be set, the XDG spec will be followed precisely.
             xdg_config_home = os.path.join(os.path.expanduser('~'), '.config')
         xdg_config_file = os.path.join(xdg_config_home, 'internetarchive', 'ia.ini')
-        candidates.append(xdg_config_file)
-        candidates.append(os.path.join(os.path.expanduser('~'), '.config', 'ia.ini'))
-        candidates.append(os.path.join(os.path.expanduser('~'), '.ia'))
+        candidates.extend(
+            (
+                xdg_config_file,
+                os.path.join(os.path.expanduser('~'), '.config', 'ia.ini'),
+                os.path.join(os.path.expanduser('~'), '.ia'),
+            )
+        )
         for candidate in candidates:
             if os.path.isfile(candidate):
                 config_file = candidate

@@ -31,8 +31,8 @@ class AuthenticationError(Exception):
 
 class ItemLocateError(Exception):
     def __init__(self, *args, **kwargs):
-        default_message = 'Item cannot be located because it is dark or does not exist.'
         if args or kwargs:
             super().__init__(*args, **kwargs)
         else:
+            default_message = 'Item cannot be located because it is dark or does not exist.'
             super().__init__(default_message)

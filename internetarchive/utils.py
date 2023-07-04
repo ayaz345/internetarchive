@@ -73,9 +73,7 @@ def validate_s3_identifier(string: str) -> bool:
                                         'length.')
 
     # Support for uploading to user items, e.g. first character can be `@`.
-    if string.startswith('@'):
-        string = string[1:]
-
+    string = string.removeprefix('@')
     if any(c not in legal_chars for c in string):
         raise InvalidIdentifierException('Identifier can only contain alphanumeric characters, '
                                         'periods ".", underscores "_", or dashes "-". However, '
@@ -105,20 +103,20 @@ def norm_filepath(fp: bytes | str) -> str:
 def get_md5(file_object) -> str:
     m = hashlib.md5()
     while True:
-        data = file_object.read(8192)
-        if not data:
+        if data := file_object.read(8192):
+            m.update(data)
+        else:
             break
-        m.update(data)
     file_object.seek(0, os.SEEK_SET)
     return m.hexdigest()
 
 
 def chunk_generator(fp, chunk_size: int):
     while True:
-        chunk = fp.read(chunk_size)
-        if not chunk:
+        if chunk := fp.read(chunk_size):
+            yield chunk
+        else:
             break
-        yield chunk
 
 
 def suppress_keyboard_interrupt_message() -> None:
@@ -212,7 +210,7 @@ def get_s3_xml_text(xml_str: str) -> str:
         else:
             return _msg
     except Exception:
-        return str(xml_str)
+        return xml_str
 
 
 def get_file_size(file_obj) -> int | None:
@@ -242,18 +240,12 @@ def recursive_file_count(files, item=None, checksum=False):
     if not isinstance(files, (list, set)):
         files = [files]
     total_files = 0
-    if checksum is True:
-        md5s = [f.get('md5') for f in item.files]
-    else:
-        md5s = []
+    md5s = [f.get('md5') for f in item.files] if checksum is True else []
     if isinstance(files, dict):
         # make sure to use local filenames.
         _files = files.values()
     else:
-        if isinstance(files[0], tuple):
-            _files = dict(files).values()
-        else:
-            _files = files
+        _files = dict(files).values() if isinstance(files[0], tuple) else files
     for f in _files:
         try:
             is_dir = os.path.isdir(f)
@@ -411,7 +403,7 @@ def merge_dictionaries(
         for key in keys_to_drop:
             new_dict.pop(key, None)
     # Items from `dict1` take precedence over items from `dict0`.
-    new_dict.update(dict1)
+    new_dict |= dict1
     return new_dict
 
 
